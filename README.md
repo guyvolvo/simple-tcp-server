@@ -1,5 +1,89 @@
-# simple-tcp-server
-Trying to build my first tcp server and then adding cool stuff to it 
+- So my first template was something like this:
+- I will be using telnet as my tool to connect to the server
+
+```sh
+import socket
+import ipaddress
+
+host = '127.0.0.1'
+port = 8000
+
+
+def main():
+    serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    serversocket.bind(('127.0.0.1', 8000))
+    serversocket.listen(2)
+
+
+if __name__ == '__main__':
+    main() this is waht i have so far
+```
+**and i realized I need to add a while true loop to actually use the server even though it did cross my mind that it could be less efficient with the cpu usage i just wanted to see if it works, **
+
+```sh
+import socket
+
+host = '127.0.0.1'
+port = 8000
+
+def main():
+    serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    serversocket.bind((host, port))
+    serversocket.listen(2)
+    print(f"Server is waiting on {host}:{port}")
+    while True:
+        connection, address = serversocket.accept()
+        print(f"Connected by: {address}")
+        data = connection.recv(1024)
+        
+        if data:
+            print(f"Received: {data.decode()}")
+            connection.send(data)
+        connection.close()
+
+if __name__ == '__main__':
+    main()
+```
+
+**I then researched a bit and asked gpt how could i improve this further since it was lacking a little to me
+he suggested i add threading to optimize it so i tried doing so and it worked but still not what i wanted**
+
+```sh
+import socket
+import threading
+
+host = '127.0.0.1'
+port = 8000
+
+def handle_client(connection, address):
+    print(f"[NEW CONNECTION] {address} connected.")
+    try:
+        buffer = connection.recv(1024)
+        if buffer:
+            print(f"[{address}] says: {buffer.decode()}")
+            connection.send(buffer)
+    finally:
+        connection.close()
+
+def main():
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server.bind((host, port))
+    server.listen()
+    print(f"[LISTENING] Server is starting on {host}:{port}")
+
+    while True:
+        connection, address = server.accept()
+        thread = threading.Thread(target=handle_client, args=(connection, address))
+        thread.start()
+        print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
+
+if __name__ == '__main__':
+    main()
+```
+**As you can see i added threading to the server but still not what i was looking for ever though the connection was there
+I asked gemini what could be improved and how I can optimize the server further and also wanted to have logs of the keys pressed on the other client until they press Ctrl C to exit out of the connection.**
+
 ```sh
 import asyncio
 
@@ -14,14 +98,12 @@ async def handle_client(reader, writer):
     try:
         while True:
             data = await reader.read(1024)
-            # Check if the client disconnected (Ctrl+C on their end)
             if not data:
                 print(f"[i] {addr} left the chat (Disconnected).")
                 break
             message = data.decode().strip()
             print(f"[{addr}] says: {message}")
-            # Echo it back
-            writer.write(f"Received: {message}\r\n".encode())
+            writer.write(f"Received: {message}\r\n".encode()) # Before adding the \r when i typed on the telnet client it would bug out 
             await writer.drain()
 
     except Exception as e:
