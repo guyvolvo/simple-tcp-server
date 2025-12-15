@@ -11,7 +11,7 @@ port = 8000
 
 def main():
     serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    serversocket.bind(('127.0.0.1', 8000))
+    serversocket.bind(('127.0.0.1', 8000)) # <-- Why didnt I just use host and port instead of typing it manually...
     serversocket.listen(2)
 
 
